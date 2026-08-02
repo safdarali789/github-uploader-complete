@@ -177,7 +177,10 @@ export const GitHubUploaderModal: React.FC<GitHubUploaderModalProps> = ({
           if (isAndroid) {
             filesToUpload.push(getAndroidWorkflowFile());
           } else {
-            filesToUpload.push(getWebsiteWorkflowFile());
+            const isViteProject = filesToUpload.some(
+              (f) => f.name === 'vite.config.ts' || f.name === 'vite.config.js' || f.path.includes('src/main.tsx') || f.path.includes('src/App.tsx')
+            );
+            filesToUpload.push(getWebsiteWorkflowFile(isViteProject));
           }
         }
       }

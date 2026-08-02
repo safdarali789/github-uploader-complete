@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Globe, Cpu, ExternalLink, CheckCircle2, Copy, Check, Sparkles, ShieldCheck, HelpCircle, Layers } from 'lucide-react';
+import { X, Globe, Cpu, ExternalLink, CheckCircle2, Copy, Check, Sparkles, ShieldCheck, HelpCircle, Layers, AlertCircle } from 'lucide-react';
 
 interface GitHubPagesGuideModalProps {
   isOpen: boolean;
@@ -98,6 +98,46 @@ jobs:
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-6 text-sm text-slate-300">
           
+          {/* Troubleshooting White Page / Blank Screen Issue */}
+          <div className="p-4 bg-amber-950/40 border border-amber-500/40 rounded-2xl space-y-3">
+            <div className="flex items-center space-x-2 rtl:space-x-reverse text-amber-400 font-bold text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0 text-amber-400" />
+              <h4>{isUrdu ? '⚠️ اگر وائٹ / بلینک پیج (Blank White Screen) آ رہا ہو تو کیا کریں؟' : '⚠️ Fixing White / Blank Page Issue on GitHub Pages'}</h4>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {isUrdu
+                ? 'اگر آپ نے React / Vite پروجیکٹ (جس میں src/main.tsx، package.json یا vite.config.ts ہو) اپلوڈ کیا ہے اور GitHub Pages پر وائٹ پیج آ رہا ہے، تو اس کی وجہ یہ ہے کہ GitHub Pages خام سورس کوڈ (Uncompiled TSX/JSX) کو ڈائریکٹ نہیں چلا سکتا۔'
+                : 'If you uploaded a React/Vite project (with src/, vite.config.ts, TSX files) and see a blank white page on GitHub Pages, it is because browsers cannot execute raw React/TypeScript source code without building first.'}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <h5 className="font-bold text-cyan-300 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <span>{isUrdu ? 'حل 1: Vercel یا Netlify پر لائیو کریں (10 سیکنڈز)' : 'Option A: Deploy on Vercel or Netlify (Fastest)'}</span>
+                </h5>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  {isUrdu
+                    ? '1. Vercel.com پر جا کر اپنے GitHub سے لاگ ان کریں۔\n2. اس ریپوزٹری کو سلیکٹ کر کے "Deploy" دبائیں۔\n3. Vercel خودکار طور پر React/Vite کوڈ بلڈ کر کے 10 سیکنڈز میں لائیو لنک دے دے گا۔'
+                    : '1. Log in to Vercel.com with your GitHub account.\n2. Select your repository and click "Deploy".\n3. Vercel builds React/Vite code automatically in 10 seconds!'}
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <h5 className="font-bold text-emerald-300 flex items-center gap-1.5">
+                  <Globe className="w-4 h-4 text-emerald-400" />
+                  <span>{isUrdu ? 'حل 2: سادہ HTML/CSS/JS فائلیں' : 'Option B: Static HTML/CSS/JS Files'}</span>
+                </h5>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  {isUrdu
+                    ? 'اگر آپ کا پروجیکٹ سادہ HTML/CSS/JS پر مشتمل ہے، تو GitHub Settings -> Pages میں جا کر Source کو "Deploy from a branch" رکھیں اور Main Branch (Root /) منتخب کریں۔'
+                    : 'If your project is pure HTML, CSS, and JS (index.html at root), set GitHub Pages settings to "Deploy from a branch" and select main branch / root folder.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Method 1: Automatic Workflow (Built-in) */}
           <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-2xl space-y-3">
             <div className="flex items-center space-x-2 rtl:space-x-reverse text-emerald-400 font-bold text-sm">

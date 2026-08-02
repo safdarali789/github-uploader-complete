@@ -358,8 +358,8 @@ jobs:
   };
 }
 
-export function getWebsiteWorkflowFile(): ExtractedFile {
-  const content = `name: Deploy Website to GitHub Pages
+export function getWebsiteWorkflowFile(isViteProject: boolean = false): ExtractedFile {
+  let content = `name: Deploy Website to GitHub Pages
 
 on:
   push:
@@ -398,11 +398,63 @@ jobs:
         uses: actions/deploy-pages@v4
 `;
 
+  if (isViteProject) {
+    content = `name: Deploy Vite/React Web App to GitHub Pages
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: \${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build with Vite
+        run: npx vite build --base=./
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+`;
+  }
+
   return {
     id: 'gh-workflow-website',
-    path: '.github/workflows/static.yml',
-    originalPath: '.github/workflows/static.yml',
-    name: 'static.yml',
+    path: '.github/workflows/deploy.yml',
+    originalPath: '.github/workflows/deploy.yml',
+    name: 'deploy.yml',
     ext: 'yml',
     isBinary: false,
     content: content,
