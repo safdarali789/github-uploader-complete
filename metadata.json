@@ -1,0 +1,6 @@
+{
+  "name": "GitHub Android Code Uploader",
+  "description": "Upload Android ZIP projects and Website Pages (HTML/CSS/JS), preview source code, copy structured paths, or publish directly to GitHub Pages and repositories with automated CI/CD workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
