@@ -6,7 +6,7 @@ import {
   createGitHubRepo,
   uploadProjectToGitHub
 } from '../utils/github';
-import { getAndroidWorkflowFile, getWebsiteWorkflowFile } from '../utils/zip';
+import { getAndroidWorkflowFile, getWebsiteWorkflowFile, patchFilesForGitHubPages } from '../utils/zip';
 import {
   Github,
   Key,
@@ -23,7 +23,8 @@ import {
   RefreshCw,
   Info,
   Cpu,
-  Smartphone
+  Smartphone,
+  ShieldCheck
 } from 'lucide-react';
 
 interface GitHubUploaderModalProps {
@@ -169,19 +170,16 @@ export const GitHubUploaderModal: React.FC<GitHubUploaderModalProps> = ({
 
       // Prepare files payload, including auto build / workflow if checked
       let filesToUpload = [...files];
-      if (autoWorkflow) {
+      if (!isAndroid) {
+        if (autoWorkflow) {
+          filesToUpload = patchFilesForGitHubPages(filesToUpload);
+        }
+      } else if (autoWorkflow) {
         const hasWorkflow = filesToUpload.some(
           (f) => f.path.includes('.github/workflows/') && f.path.endsWith('.yml')
         );
         if (!hasWorkflow) {
-          if (isAndroid) {
-            filesToUpload.push(getAndroidWorkflowFile());
-          } else {
-            const isViteProject = filesToUpload.some(
-              (f) => f.name === 'vite.config.ts' || f.name === 'vite.config.js' || f.path.includes('src/main.tsx') || f.path.includes('src/App.tsx')
-            );
-            filesToUpload.push(getWebsiteWorkflowFile(isViteProject));
-          }
+          filesToUpload.push(getAndroidWorkflowFile());
         }
       }
 
@@ -526,16 +524,34 @@ export const GitHubUploaderModal: React.FC<GitHubUploaderModalProps> = ({
               )}
 
               {uploadState.repoUrl && (
-                <div className="pt-2 flex justify-end">
-                  <a
-                    href={uploadState.repoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
-                  >
-                    <span>{isUrdu ? 'GitHub پر ریپوزٹری کھولیں' : 'Open Repository on GitHub'}</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+                <div className="pt-2 space-y-3">
+                  {!isAndroid && (
+                    <div className="p-3.5 bg-slate-900 border border-cyan-500/40 rounded-xl space-y-2 text-left rtl:text-right">
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse text-cyan-300 text-xs font-bold">
+                        <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span>{isUrdu ? 'وائٹ اسکرین (White Screen) ختم کرنے اور سائٹ لائیو کرنے کا طریقہ:' : 'Quick Step to Fix White Screen & Enable GitHub Pages:'}</span>
+                      </div>
+                      <ol className="list-decimal list-inside text-[11px] text-slate-300 space-y-1 leading-relaxed">
+                        <li>{isUrdu ? 'نیچے دیئے گئے بٹن سے اپنی **GitHub Repository** کھولیں۔' : 'Open your **GitHub Repository** using the button below.'}</li>
+                        <li>{isUrdu ? 'اوپر موجود **Settings** ٹیب پر کلک کریں۔' : 'Click the **Settings** tab at the top.'}</li>
+                        <li>{isUrdu ? 'بائیں مینو میں **Pages** پر جائیں۔' : 'Click **Pages** in the left sidebar menu.'}</li>
+                        <li>{isUrdu ? 'Build and deployment -> **Source** کو **"GitHub Actions"** پر سیٹ کر دیں۔' : 'Set **Build and deployment -> Source** to **"GitHub Actions"**.'}</li>
+                        <li>{isUrdu ? '30 سیکنڈز میں آپ کی ویب سائٹ بغیر کسی وائٹ اسکرین کے لائیو ہو جائے گی! 🎉' : 'Your page will go live in 30 seconds with no white screen! 🎉'}</li>
+                      </ol>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end">
+                    <a
+                      href={uploadState.repoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
+                    >
+                      <span>{isUrdu ? 'GitHub پر ریپوزٹری کھولیں' : 'Open Repository on GitHub'}</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
                 </div>
               )}
             </div>

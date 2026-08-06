@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExtractedFile, ProjectMetadata } from './types';
-import { parseZipFile, parseWebFiles, createDemoAndroidProject, createDemoWebsiteProject, exportFilesToZip } from './utils/zip';
+import { parseZipFile, parseWebFiles, createDemoAndroidProject, createDemoWebsiteProject, exportFilesToZip, patchFilesForGitHubPages } from './utils/zip';
 import { Header } from './components/Header';
 import { ZipUploader } from './components/ZipUploader';
 import { AndroidProjectSummary } from './components/AndroidProjectSummary';
@@ -86,6 +86,17 @@ export default function App() {
     if (files.length === 0) return;
     const name = metadata?.projectName || 'project-source';
     await exportFilesToZip(files, `${name}.zip`);
+  };
+
+  const handleAutoFixWhiteScreen = () => {
+    if (files.length === 0) return;
+    const patched = patchFilesForGitHubPages(files);
+    setFiles(patched);
+    alert(
+      isUrdu
+        ? 'کامیابی! پروجیکٹ فائلوں میں .nojekyll، relative paths (./)، base: "./" اور GitHub Actions خودکار طور پر شامل کر دیئے گئے ہیں۔ اب وائٹ اسکرین نہیں آئے گی!'
+        : 'Success! Auto-patched .nojekyll, relative paths (./), base: "./", and GitHub Actions workflows into your project. White screen issue resolved!'
+    );
   };
 
   const handleToggleSelect = (id: string) => {
@@ -228,15 +239,26 @@ export default function App() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {/* Live Web Sandbox Preview Button */}
+                {/* Live Web Sandbox Preview & Auto Fix Buttons */}
                 {metadata?.projectType === 'website' && (
-                  <button
-                    onClick={() => setIsLiveWebModalOpen(true)}
-                    className="px-3.5 py-2 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
-                  >
-                    <Globe className="w-4 h-4 text-cyan-400" />
-                    <span>{isUrdu ? 'لائیو ویب سائٹ پریویو (Sandbox)' : 'Live Web Preview'}</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setIsLiveWebModalOpen(true)}
+                      className="px-3.5 py-2 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                    >
+                      <Globe className="w-4 h-4 text-cyan-400" />
+                      <span>{isUrdu ? 'لائیو ویب سائٹ پریویو (Sandbox)' : 'Live Web Preview'}</span>
+                    </button>
+
+                    <button
+                      onClick={handleAutoFixWhiteScreen}
+                      className="px-3 py-2 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-600/50 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                      title={isUrdu ? 'وائٹ اسکرین فکس کریں (.nojekyll, relative paths, base: ./)' : 'Fix White Screen Issues'}
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>{isUrdu ? 'وائٹ اسکرین آٹو فکس' : 'Fix White Screen'}</span>
+                    </button>
+                  </>
                 )}
 
                 <button

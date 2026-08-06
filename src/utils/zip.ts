@@ -645,14 +645,14 @@ export function createDemoWebsiteProject(): { files: ExtractedFile[]; metadata: 
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div className="container">
+  <div class="container">
     <header>
       <h1>🌐 میری ویب سائٹ (My Website Page)</h1>
       <p>GitHub Uploader کے ذریعے کامیابی سے اپلوڈ کی گئی ویب سائٹ پیج فائلیں۔</p>
     </header>
 
     <main>
-      <section className="card">
+      <section class="card">
         <h2>🚀 فیچرز</h2>
         <ul>
           <li>HTML5, CSS3, JavaScript سپورٹ</li>
@@ -832,4 +832,118 @@ export async function exportFilesToZip(files: ExtractedFile[], zipName: string =
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// Auto-patcher to fix White Screen / Blank Page issues on GitHub Pages
+export function patchFilesForGitHubPages(files: ExtractedFile[]): ExtractedFile[] {
+  let patched = [...files];
+
+  // 1. Ensure .nojekyll file exists to prevent GitHub Pages Jekyll filter from ignoring assets
+  const hasNoJekyll = patched.some((f) => f.path === '.nojekyll' || f.name === '.nojekyll');
+  if (!hasNoJekyll) {
+    patched.push({
+      id: 'nojekyll-file',
+      path: '.nojekyll',
+      originalPath: '.nojekyll',
+      name: '.nojekyll',
+      ext: '',
+      isBinary: false,
+      content: '# Prevents GitHub Pages Jekyll from filtering out assets or folders starting with _\n',
+      size: 75,
+      lineCount: 2,
+      isSelected: true
+    });
+  }
+
+  // 2. Fix index.html paths (convert absolute /src/... or /assets/... to relative ./src/... or ./assets/...)
+  patched = patched.map((file) => {
+    if (file.ext === 'html') {
+      let content = file.content;
+      // Replace absolute paths with relative paths
+      content = content.replace(/src=["']\/src\//g, 'src="./src/');
+      content = content.replace(/src=["']\/assets\//g, 'src="./assets/');
+      content = content.replace(/href=["']\/src\//g, 'href="./src/');
+      content = content.replace(/href=["']\/assets\//g, 'href="./assets/');
+      content = content.replace(/href=["']\/["']/g, 'href="./"');
+      return {
+        ...file,
+        content
+      };
+    }
+    return file;
+  });
+
+  // 3. Detect if Vite/React project
+  const isViteProject = patched.some(
+    (f) =>
+      f.name === 'vite.config.ts' ||
+      f.name === 'vite.config.js' ||
+      f.path.includes('src/main.tsx') ||
+      f.path.includes('src/App.tsx') ||
+      (f.name === 'package.json' && f.content.includes('vite'))
+  );
+
+  // 4. Inject or fix base: './' in vite.config.ts / vite.config.js
+  if (isViteProject) {
+    const viteConfigFile = patched.find((f) => f.name === 'vite.config.ts' || f.name === 'vite.config.js');
+    if (viteConfigFile) {
+      if (!viteConfigFile.content.includes('base:')) {
+        let content = viteConfigFile.content;
+        if (content.includes('defineConfig({')) {
+          content = content.replace('defineConfig({', "defineConfig({\n  base: './',");
+        } else if (content.includes('export default {')) {
+          content = content.replace('export default {', "export default {\n  base: './',");
+        }
+        patched = patched.map((f) => (f.id === viteConfigFile.id ? { ...f, content } : f));
+      }
+    } else {
+      patched.push({
+        id: 'auto-vite-config',
+        path: 'vite.config.ts',
+        originalPath: 'vite.config.ts',
+        name: 'vite.config.ts',
+        ext: 'ts',
+        isBinary: false,
+        content: `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  base: './', // Fixes relative asset loading on GitHub Pages
+});
+`,
+        size: 210,
+        lineCount: 9,
+        isSelected: true
+      });
+    }
+  }
+
+  // 5. Create 404.html fallback for SPAs if missing
+  const indexFile = patched.find((f) => f.name === 'index.html' || f.path === 'index.html');
+  const has404 = patched.some((f) => f.name === '404.html' || f.path === '404.html');
+  if (indexFile && !has404) {
+    patched.push({
+      id: 'auto-404-html',
+      path: '404.html',
+      originalPath: '404.html',
+      name: '404.html',
+      ext: 'html',
+      isBinary: false,
+      content: indexFile.content,
+      size: indexFile.content.length,
+      lineCount: indexFile.lineCount,
+      isSelected: true
+    });
+  }
+
+  // 6. Inject .github/workflows/deploy.yml
+  const hasWorkflow = patched.some((f) => f.path.includes('.github/workflows/'));
+  if (!hasWorkflow) {
+    patched.push(getWebsiteWorkflowFile(isViteProject));
+  }
+
+  return patched;
+}
+
 
