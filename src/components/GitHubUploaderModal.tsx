@@ -171,9 +171,8 @@ export const GitHubUploaderModal: React.FC<GitHubUploaderModalProps> = ({
       // Prepare files payload, including auto build / workflow if checked
       let filesToUpload = [...files];
       if (!isAndroid) {
-        if (autoWorkflow) {
-          filesToUpload = patchFilesForGitHubPages(filesToUpload);
-        }
+        // ALWAYS auto-patch website files for Vercel and GitHub Pages compatibility to prevent white screen
+        filesToUpload = patchFilesForGitHubPages(filesToUpload);
       } else if (autoWorkflow) {
         const hasWorkflow = filesToUpload.some(
           (f) => f.path.includes('.github/workflows/') && f.path.endsWith('.yml')
@@ -529,15 +528,35 @@ export const GitHubUploaderModal: React.FC<GitHubUploaderModalProps> = ({
                     <div className="p-3.5 bg-slate-900 border border-cyan-500/40 rounded-xl space-y-2 text-left rtl:text-right">
                       <div className="flex items-center space-x-2 rtl:space-x-reverse text-cyan-300 text-xs font-bold">
                         <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-                        <span>{isUrdu ? 'وائٹ اسکرین (White Screen) ختم کرنے اور سائٹ لائیو کرنے کا طریقہ:' : 'Quick Step to Fix White Screen & Enable GitHub Pages:'}</span>
+                        <span>{isUrdu ? 'لائیو لنک (Live Site Link) حاصل کرنے کا حتمی طریقہ:' : 'How to generate and view your Live Site Link:'}</span>
                       </div>
-                      <ol className="list-decimal list-inside text-[11px] text-slate-300 space-y-1 leading-relaxed">
-                        <li>{isUrdu ? 'نیچے دیئے گئے بٹن سے اپنی **GitHub Repository** کھولیں۔' : 'Open your **GitHub Repository** using the button below.'}</li>
-                        <li>{isUrdu ? 'اوپر موجود **Settings** ٹیب پر کلک کریں۔' : 'Click the **Settings** tab at the top.'}</li>
-                        <li>{isUrdu ? 'بائیں مینو میں **Pages** پر جائیں۔' : 'Click **Pages** in the left sidebar menu.'}</li>
-                        <li>{isUrdu ? 'Build and deployment -> **Source** کو **"GitHub Actions"** پر سیٹ کر دیں۔' : 'Set **Build and deployment -> Source** to **"GitHub Actions"**.'}</li>
-                        <li>{isUrdu ? '30 سیکنڈز میں آپ کی ویب سائٹ بغیر کسی وائٹ اسکرین کے لائیو ہو جائے گی! 🎉' : 'Your page will go live in 30 seconds with no white screen! 🎉'}</li>
-                      </ol>
+                      
+                      <div className="space-y-2 text-[11px] text-slate-300 leading-relaxed">
+                        <p className="font-semibold text-emerald-300">
+                          {isUrdu 
+                            ? 'طریقہ 1: GitHub Actions سے لائیو کریں (تمام پروجیکٹس کے لیے)'
+                            : 'Method 1: Run GitHub Actions (Recommended for React / Vite)'}
+                        </p>
+                        <ol className="list-decimal list-inside space-y-1 pl-1 text-slate-300">
+                          <li>{isUrdu ? 'اپنی Repository کھولیں اور اوپر **Actions** ٹیب پر کلک کریں۔' : 'Open your Repository and click the **Actions** tab at the top.'}</li>
+                          <li>{isUrdu ? 'بائیں جانب **"Deploy Web App to GitHub Pages"** منتخب کریں۔' : 'Select **"Deploy Web App to GitHub Pages"** on the left.'}</li>
+                          <li>{isUrdu ? '**Run workflow** بٹن پر کلک کریں -> پھر دوبارہ **Run workflow** دبائیں۔' : 'Click **Run workflow** button -> then click **Run workflow**.'}</li>
+                          <li>{isUrdu ? '30 سیکنڈ بعد سبز نِشان (✅) آتے ہی **Settings -> Pages** میں لائیو لنک آ جائے گا!' : 'After ~30s, check **Settings -> Pages** or Actions summary for your Live URL!'}</li>
+                        </ol>
+
+                        <div className="pt-1 border-t border-slate-800">
+                          <p className="font-semibold text-cyan-300">
+                            {isUrdu 
+                              ? 'طریقہ 2: "Deploy from a branch" (سادہ ویب سائٹ کے لیے فوری لائیو)'
+                              : 'Method 2: "Deploy from a branch" (Instant live for static sites)'}
+                          </p>
+                          <p className="text-[10.5px] text-slate-400 mt-0.5">
+                            {isUrdu
+                              ? 'GitHub Settings -> Pages میں جائیں -> Source کو **"Deploy from a branch"** کریں -> Branch کو **main** اور Folder کو **/ (root)** رکھ کر **Save** کر دیں۔ 15 سیکنڈز میں لنک اوپر شو ہو جائے گا!'
+                              : 'Go to Settings -> Pages -> Set Source to "Deploy from a branch" -> Select main branch and / (root) folder -> Click Save. URL appears in 15s!'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
 

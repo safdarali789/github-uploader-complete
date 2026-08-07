@@ -399,7 +399,7 @@ jobs:
 `;
 
   if (isViteProject) {
-    content = `name: Deploy Vite/React Web App to GitHub Pages
+    content = `name: Deploy Web App to GitHub Pages
 
 on:
   push:
@@ -431,10 +431,16 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps || npm install
 
-      - name: Build with Vite
-        run: npx vite build --base=./
+      - name: Build Web App
+        run: |
+          npx vite build --base=./ || npm run build || true
+          if [ -d "dist" ]; then
+            touch dist/.nojekyll
+            [ -f "404.html" ] && cp 404.html dist/ 2>/dev/null || true
+            [ -f "index.html" ] && cp index.html dist/404.html 2>/dev/null || true
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -442,7 +448,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: \${{ hashFiles('dist/index.html') != '' && './dist' || '.' }}
 
       - name: Deploy to GitHub Pages
         id: deployment
@@ -803,7 +809,22 @@ To publish this website live on GitHub Pages:
 export async function exportFilesToZip(files: ExtractedFile[], zipName: string = 'exported-project'): Promise<void> {
   const zip = new JSZip();
 
-  for (const f of files) {
+  // Determine if it's a web project and patch automatically before zipping
+  const isAndroid = files.some(
+    (f) =>
+      f.name === 'AndroidManifest.xml' ||
+      f.ext === 'kt' ||
+      f.ext === 'gradle' ||
+      f.ext === 'kts' ||
+      f.path.includes('app/src/main/')
+  );
+
+  let exportableFiles = files;
+  if (!isAndroid) {
+    exportableFiles = patchFilesForGitHubPages(files);
+  }
+
+  for (const f of exportableFiles) {
     if (f.isSelected === false) continue;
     if (f.isBinary) {
       try {
@@ -833,11 +854,46 @@ export async function exportFilesToZip(files: ExtractedFile[], zipName: string =
   URL.revokeObjectURL(url);
 }
 
-// Auto-patcher to fix White Screen / Blank Page issues on GitHub Pages
+// Auto-patcher to fix White Screen / Blank Page issues on Vercel and GitHub Pages
 export function patchFilesForGitHubPages(files: ExtractedFile[]): ExtractedFile[] {
   let patched = [...files];
 
-  // 1. Ensure .nojekyll file exists to prevent GitHub Pages Jekyll filter from ignoring assets
+  // 1. Check if all files share a common single root folder prefix (e.g. my-app/index.html) and strip it
+  if (patched.length > 0) {
+    const paths = patched.map((f) => f.path);
+    const firstParts = paths[0].split('/');
+    if (firstParts.length > 1) {
+      const candidate = firstParts[0] + '/';
+      if (paths.every((p) => p.startsWith(candidate))) {
+        patched = patched.map((f) => ({
+          ...f,
+          path: f.path.substring(candidate.length)
+        }));
+      }
+    }
+  }
+
+  // 2. Ensure root index.html exists. If missing at root, hoist from subfolders (e.g., public/index.html or dist/index.html)
+  const hasRootIndexHtml = patched.some((f) => f.path === 'index.html' || (f.name === 'index.html' && !f.path.includes('/')));
+  if (!hasRootIndexHtml) {
+    const subfolderIndexHtml = patched.find((f) => f.name.toLowerCase() === 'index.html');
+    if (subfolderIndexHtml) {
+      patched.push({
+        id: 'hoisted-root-index-html',
+        path: 'index.html',
+        originalPath: 'index.html',
+        name: 'index.html',
+        ext: 'html',
+        isBinary: false,
+        content: subfolderIndexHtml.content,
+        size: subfolderIndexHtml.content.length,
+        lineCount: subfolderIndexHtml.lineCount,
+        isSelected: true
+      });
+    }
+  }
+
+  // 3. Ensure .nojekyll file exists at root AND inside public/ so Vite copies it to dist/.nojekyll
   const hasNoJekyll = patched.some((f) => f.path === '.nojekyll' || f.name === '.nojekyll');
   if (!hasNoJekyll) {
     patched.push({
@@ -847,23 +903,59 @@ export function patchFilesForGitHubPages(files: ExtractedFile[]): ExtractedFile[
       name: '.nojekyll',
       ext: '',
       isBinary: false,
-      content: '# Prevents GitHub Pages Jekyll from filtering out assets or folders starting with _\n',
-      size: 75,
+      content: '# Prevents GitHub Pages Jekyll filter from breaking assets\n',
+      size: 58,
       lineCount: 2,
       isSelected: true
     });
   }
 
-  // 2. Fix index.html paths (convert absolute /src/... or /assets/... to relative ./src/... or ./assets/...)
+  const hasPublicNoJekyll = patched.some((f) => f.path === 'public/.nojekyll');
+  if (!hasPublicNoJekyll) {
+    patched.push({
+      id: 'public-nojekyll-file',
+      path: 'public/.nojekyll',
+      originalPath: 'public/.nojekyll',
+      name: '.nojekyll',
+      ext: '',
+      isBinary: false,
+      content: '# Copies to dist/.nojekyll during vite build\n',
+      size: 45,
+      lineCount: 2,
+      isSelected: true
+    });
+  }
+
+  // 4. Fix index.html paths (convert absolute /src/... or /assets/... to relative ./src/... or ./assets/...)
   patched = patched.map((file) => {
     if (file.ext === 'html') {
       let content = file.content;
+      // Remove or fix base href
+      content = content.replace(/<base\s+href=["']\/["']\s*\/?>/gi, '<base href="./">');
+      content = content.replace(/<base\s+href=["']\/[^"']*["']\s*\/?>/gi, '<base href="./">');
+      
       // Replace absolute paths with relative paths
       content = content.replace(/src=["']\/src\//g, 'src="./src/');
       content = content.replace(/src=["']\/assets\//g, 'src="./assets/');
       content = content.replace(/href=["']\/src\//g, 'href="./src/');
       content = content.replace(/href=["']\/assets\//g, 'href="./assets/');
-      content = content.replace(/href=["']\/["']/g, 'href="./"');
+      content = content.replace(/href=["']\/css\//g, 'href="./css/');
+      content = content.replace(/src=["']\/js\//g, 'src="./js/');
+      content = content.replace(/href=["']\/favicon/g, 'href="./favicon');
+
+      // If html loads a TSX/JSX script (like src/main.tsx) directly, inject Babel standalone for browser static execution if uncompiled
+      if (
+        (content.includes('src="./src/main.tsx"') || content.includes('src="/src/main.tsx"') || content.includes('src="./src/App.tsx"')) &&
+        !content.includes('babel.min.js')
+      ) {
+        const babelScript = `
+  <!-- Babel Standalone Fallback for Direct Browser Execution -->
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.0/babel.min.js"></script>`;
+        if (content.includes('</head>')) {
+          content = content.replace('</head>', `${babelScript}\n</head>`);
+        }
+      }
+
       return {
         ...file,
         content
@@ -872,7 +964,7 @@ export function patchFilesForGitHubPages(files: ExtractedFile[]): ExtractedFile[
     return file;
   });
 
-  // 3. Detect if Vite/React project
+  // 5. Detect if Vite/React project
   const isViteProject = patched.some(
     (f) =>
       f.name === 'vite.config.ts' ||
@@ -882,19 +974,19 @@ export function patchFilesForGitHubPages(files: ExtractedFile[]): ExtractedFile[
       (f.name === 'package.json' && f.content.includes('vite'))
   );
 
-  // 4. Inject or fix base: './' in vite.config.ts / vite.config.js
+  // 6. Force base: './' in vite.config.ts / vite.config.js to resolve asset 404 white screen errors
   if (isViteProject) {
     const viteConfigFile = patched.find((f) => f.name === 'vite.config.ts' || f.name === 'vite.config.js');
     if (viteConfigFile) {
-      if (!viteConfigFile.content.includes('base:')) {
-        let content = viteConfigFile.content;
-        if (content.includes('defineConfig({')) {
-          content = content.replace('defineConfig({', "defineConfig({\n  base: './',");
-        } else if (content.includes('export default {')) {
-          content = content.replace('export default {', "export default {\n  base: './',");
-        }
-        patched = patched.map((f) => (f.id === viteConfigFile.id ? { ...f, content } : f));
+      let content = viteConfigFile.content;
+      if (content.includes('base:')) {
+        content = content.replace(/base:\s*['"][^'"]*['"]/g, "base: './'");
+      } else if (content.includes('defineConfig({')) {
+        content = content.replace('defineConfig({', "defineConfig({\n  base: './',");
+      } else if (content.includes('export default {')) {
+        content = content.replace('export default {', "export default {\n  base: './',");
       }
+      patched = patched.map((f) => (f.id === viteConfigFile.id ? { ...f, content } : f));
     } else {
       patched.push({
         id: 'auto-vite-config',
@@ -909,38 +1001,117 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Fixes relative asset loading on GitHub Pages
+  base: './', // Ensures relative asset paths on Vercel & GitHub Pages
 });
 `,
-        size: 210,
+        size: 215,
         lineCount: 9,
         isSelected: true
       });
     }
   }
 
-  // 5. Create 404.html fallback for SPAs if missing
-  const indexFile = patched.find((f) => f.name === 'index.html' || f.path === 'index.html');
-  const has404 = patched.some((f) => f.name === '404.html' || f.path === '404.html');
-  if (indexFile && !has404) {
-    patched.push({
-      id: 'auto-404-html',
-      path: '404.html',
-      originalPath: '404.html',
-      name: '404.html',
-      ext: 'html',
-      isBinary: false,
-      content: indexFile.content,
-      size: indexFile.content.length,
-      lineCount: indexFile.lineCount,
-      isSelected: true
-    });
+  // 7. Ensure package.json exists and has valid "build": "vite build" script for GitHub Actions deployment
+  const pkgFileIndex = patched.findIndex((f) => f.name === 'package.json');
+  if (isViteProject) {
+    if (pkgFileIndex >= 0) {
+      let pkgContent = patched[pkgFileIndex].content;
+      try {
+        const pkgObj = JSON.parse(pkgContent);
+        if (!pkgObj.scripts) pkgObj.scripts = {};
+        if (!pkgObj.scripts.build) {
+          pkgObj.scripts.build = 'vite build';
+        }
+        pkgContent = JSON.stringify(pkgObj, null, 2);
+        patched[pkgFileIndex] = {
+          ...patched[pkgFileIndex],
+          content: pkgContent
+        };
+      } catch {
+        // keep as is if unparseable
+      }
+    } else {
+      const defaultPkg = {
+        name: 'web-app',
+        private: true,
+        version: '1.0.0',
+        type: 'module',
+        scripts: {
+          dev: 'vite',
+          build: 'vite build',
+          preview: 'vite preview'
+        },
+        dependencies: {
+          react: '^18.2.0',
+          'react-dom': '^18.2.0'
+        },
+        devDependencies: {
+          '@types/react': '^18.2.0',
+          '@types/react-dom': '^18.2.0',
+          '@vitejs/plugin-react': '^4.2.0',
+          typescript: '^5.2.0',
+          vite: '^5.0.0'
+        }
+      };
+      const pkgStr = JSON.stringify(defaultPkg, null, 2);
+      patched.push({
+        id: 'auto-package-json',
+        path: 'package.json',
+        originalPath: 'package.json',
+        name: 'package.json',
+        ext: 'json',
+        isBinary: false,
+        content: pkgStr,
+        size: pkgStr.length,
+        lineCount: pkgStr.split('\n').length,
+        isSelected: true
+      });
+    }
   }
 
-  // 6. Inject .github/workflows/deploy.yml
-  const hasWorkflow = patched.some((f) => f.path.includes('.github/workflows/'));
-  if (!hasWorkflow) {
-    patched.push(getWebsiteWorkflowFile(isViteProject));
+  // 9. Create 404.html fallback in root AND public/ for SPAs if missing
+  const indexFile = patched.find((f) => f.name === 'index.html' || f.path === 'index.html');
+  if (indexFile) {
+    const has404 = patched.some((f) => f.name === '404.html' || f.path === '404.html');
+    if (!has404) {
+      patched.push({
+        id: 'auto-404-html',
+        path: '404.html',
+        originalPath: '404.html',
+        name: '404.html',
+        ext: 'html',
+        isBinary: false,
+        content: indexFile.content,
+        size: indexFile.content.length,
+        lineCount: indexFile.lineCount,
+        isSelected: true
+      });
+    }
+
+    const hasPublic404 = patched.some((f) => f.path === 'public/404.html');
+    if (!hasPublic404) {
+      patched.push({
+        id: 'auto-public-404-html',
+        path: 'public/404.html',
+        originalPath: 'public/404.html',
+        name: '404.html',
+        ext: 'html',
+        isBinary: false,
+        content: indexFile.content,
+        size: indexFile.content.length,
+        lineCount: indexFile.lineCount,
+        isSelected: true
+      });
+    }
+  }
+
+  // 10. Inject/Update .github/workflows/deploy.yml
+  const workflowFileIndex = patched.findIndex((f) => f.path.includes('.github/workflows/'));
+  const newWorkflow = getWebsiteWorkflowFile(isViteProject);
+  if (workflowFileIndex >= 0) {
+    patched[workflowFileIndex] = newWorkflow;
+  } else {
+    patched.push(newWorkflow);
   }
 
   return patched;

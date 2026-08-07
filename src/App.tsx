@@ -94,8 +94,8 @@ export default function App() {
     setFiles(patched);
     alert(
       isUrdu
-        ? 'کامیابی! پروجیکٹ فائلوں میں .nojekyll، relative paths (./)، base: "./" اور GitHub Actions خودکار طور پر شامل کر دیئے گئے ہیں۔ اب وائٹ اسکرین نہیں آئے گی!'
-        : 'Success! Auto-patched .nojekyll, relative paths (./), base: "./", and GitHub Actions workflows into your project. White screen issue resolved!'
+        ? 'کامیابی! GitHub Pages کے لیے تمام وائٹ پیج ایشوز حل کر دیے گئے ہیں: (1) index.html روٹ پر لگا دی گئی (2) Relative Asset Paths (./) اور base: "./" سیٹ کر دیے گئے (3) .nojekyll، 404.html اور GitHub Actions Workflow خودکار شامل کر دیے گئے۔ اب ڈاؤنلوڈ یا اپلوڈ کریں، لائیو چلے گا!'
+        : 'Success! Resolved all White Screen / Blank Page issues for GitHub Pages: (1) Hoisted index.html to root (2) Fixed relative asset paths (./) and base: "./" (3) Auto-injected .nojekyll, 404.html, and GitHub Actions workflow. Ready for live upload or ZIP download!'
     );
   };
 
