@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>GitHub Upload - Mobile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .upload-box {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 30px 15px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-box:active {
+            background: #f0f1ff;
+            border-color: #764ba2;
+        }
+        
+        .upload-box input {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+        
+        .upload-text {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-num {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        .file-card {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+        
+        .file-card:active {
+            background: #f0f0f0;
+            border-color: #667eea;
+        }
+        
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .file-num {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .file-cat {
+            background: #e9ecef;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .file-path {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #e74c3c;
+            font-weight: bold;
+            word-break: break-all;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .file-content {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid #34495e;
+            line-height: 1.3;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-align: center;
+            display: block;
+            width: 100%;
+        }
+        
+        .btn-copy {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-copy:active {
+            background: #218838;
+            transform: scale(0.98);
+        }
+        
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        
+        .filter-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .status {
+            padding: 12px;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 30px 15px;
+            color: #999;
+            font-size: 13px;
+        }
+        
+        .empty-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .files-list {
+            display: none;
+        }
+        
+        .files-list.show {
+            display: block;
+        }
+        
+        .copied-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            z-index: 1000;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .copied-toast.show {
+            display: block;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 GitHub Upload</h1>
+            <p>PATH + CONTENT - براہ راست Copy کریں!</p>
+        </div>
+        
+        <div class="content">
+            <!-- Upload -->
+            <div class="upload-box" onclick="document.getElementById('zipFile').click()">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">اپنی Zip File یہاں ڈالیں</div>
+                <div style="font-size: 11px; color: #666; margin-top: 5px;">یا کلک کریں</div>
+                <input type="file" id="zipFile" accept=".zip" />
+            </div>
+            
+            <!-- Status -->
+            <div id="status" class="status"></div>
+            
+            <!-- Stats -->
+            <div id="statsBox" class="stats" style="display: none;">
+                <div class="stat">
+                    <div class="stat-num" id="totalCount">0</div>
+                    <div class="stat-label">کل Files</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num" id="catCount">0</div>
+                    <div class="stat-label">Categories</div>
+                </div>
+            </div>
+            
+            <!-- Search -->
+            <input type="text" id="searchBox" class="search-box" placeholder="تلاش کریں..." onkeyup="filterFiles()" style="display: none;" />
+            
+            <!-- Filters -->
+            <div id="filtersBox" class="filters" style="display: none;">
+                <button class="filter-btn active" onclick="filterCategory('all')">تمام</button>
+                <button class="filter-btn" onclick="filterCategory('root')">Root</button>
+                <button class="filter-btn" onclick="filterCategory('gradle')">Gradle</button>
+                <button class="filter-btn" onclick="filterCategory('java')">Java</button>
+                <button class="filter-btn" onclick="filterCategory('resources')">Resources</button>
+            </div>
+            
+            <!-- Files -->
+            <div id="filesBox" class="files-list"></div>
+            
+            <!-- Empty -->
+            <div id="emptyState" class="empty">
+                <div class="empty-icon">📂</div>
+                <div>Zip file select کریں</div>
+            </div>
+            
+            <!-- Toast -->
+            <div id="toast" class="copied-toast"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        let allFiles = [];
+        let currentFilter = 'all';
+        
+        document.getElementById('zipFile').addEventListener('change', handleZip);
+        
+        function handleZip(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            showStatus('⏳ Processing...');
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    JSZip.loadAsync(event.target.result)
+                        .then(zip => {
+                            allFiles = [];
+                            const promises = [];
+                            
+                            zip.forEach((path, file) => {
+                                if (!file.dir && !path.includes('__MACOSX') && !path.includes('.git')) {
+                                    promises.push(
+                                        file.async('text').then(content => {
+                                            allFiles.push({
+                                                path: cleanPath(path),
+                                                content: content,
+                                                category: categorize(path)
+                                            });
+                                        }).catch(() => {
+                                            allFiles.push({
+                                                path: cleanPath(path),
+                                                content: '[Binary File]',
+                                                category: categorize(path)
+                                            });
+                                        })
+                                    );
+                                }
+                            });
+                            
+                            Promise.all(promises).then(() => {
+                                if (allFiles.length === 0) {
+                                    showStatus('❌ کوئی files نہیں ملیں');
+                                    return;
+                                }
+                                
+                                allFiles.sort((a, b) => a.path.localeCompare(b.path));
+                                displayFiles();
+                                updateStats();
+                                showStatus(`✅ ${allFiles.length} files تیار!`);
+                                
+                                document.getElementById('emptyState').style.display = 'none';
+                                document.getElementById('statsBox').style.display = 'grid';
+                                document.getElementById('filtersBox').style.display = 'flex';
+                                document.getElementById('searchBox').style.display = 'block';
+                                document.getElementById('filesBox').classList.add('show');
+                            });
+                        })
+                        .catch(err => {
+                            showStatus('❌ Error: ' + err.message);
+                        });
+                } catch (err) {
+                    showStatus('❌ Browser میں Issue - Text file استعمال کریں');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function cleanPath(path) {
+            let parts = path.split('/');
+            if (parts[0] && (parts[0].includes('smart-diary') || parts[0].includes('project'))) {
+                parts.shift();
+            }
+            return parts.filter(p => p).join('/');
+        }
+        
+        function categorize(path) {
+            const p = path.toLowerCase();
+            if (!p.includes('/')) return 'root';
+            if (p.includes('.gradle') || p.includes('gradle')) return 'gradle';
+            if (p.includes('.kt') || p.includes('.java')) return 'java';
+            if (p.includes('res/') || p.includes('drawable') || p.includes('mipmap')) return 'resources';
+            return 'other';
+        }
+        
+        function displayFiles() {
+            const container = document.getElementById('filesBox');
+            container.innerHTML = '';
+            
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            let filtered = allFiles;
+            
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(f => f.category === currentFilter);
+            }
+            
+            filtered = filtered.filter(f => f.path.toLowerCase().includes(search));
+            
+            filtered.forEach((file, idx) => {
+                const card = document.createElement('div');
+                card.className = 'file-card';
+                
+                const header = document.createElement('div');
+                header.className = 'file-header';
+                
+                const num = document.createElement('div');
+                num.className = 'file-num';
+                num.textContent = `#${idx + 1}`;
+                
+                const cat = document.createElement('div');
+                cat.className = 'file-cat';
+                cat.textContent = file.category.toUpperCase();
+                
+                header.appendChild(num);
+                header.appendChild(cat);
+                card.appendChild(header);
+                
+                const pathDiv = document.createElement('div');
+                pathDiv.className = 'file-path';
+                pathDiv.textContent = `📍 ${file.path}`;
+                card.appendChild(pathDiv);
+                
+                if (file.content !== '[Binary File]') {
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'file-content';
+                    contentDiv.textContent = file.content.substring(0, 400) + (file.content.length > 400 ? '\n...' : '');
+                    card.appendChild(contentDiv);
+                }
+                
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-copy';
+                btn.textContent = '📋 PATH + Content Copy';
+                btn.onclick = () => copyForGithub(file);
+                card.appendChild(btn);
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function filterCategory(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            displayFiles();
+        }
+        
+        function filterFiles() {
+            displayFiles();
+        }
+        
+        function updateStats() {
+            document.getElementById('totalCount').textContent = allFiles.length;
+            const cats = new Set(allFiles.map(f => f.category));
+            document.getElementById('catCount').textContent = cats.size;
+        }
+        
+        function copyForGithub(file) {
+            const text = `PATH: ${file.path}\n\n${file.content}`;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`✅ Copied! GitHub میں Paste کریں`);
+            }).catch(() => {
+                showToast('❌ Copy failed - دوبارہ کوشش کریں');
+            });
+        }
+        
+        function showStatus(msg) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.classList.add('show');
+        }
+        
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+    </script>
+</body>
+</html>
